@@ -238,6 +238,7 @@ export async function POST(request: Request) {
         dateOfBirth,
         isAlive: data.isAlive,
         role: data.role,
+        phoneNumber: data.phoneNumber,
         address: data.address,
         occupation: data.occupation,
         education: data.education,

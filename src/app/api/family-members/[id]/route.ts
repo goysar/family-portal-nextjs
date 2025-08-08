@@ -186,54 +186,56 @@ export async function PUT(
       notes: formData.get('notes') as string || null,
     };
 
-    // Handle spouse relationship
-    const spouseId = formData.get('spouseId') as string | null;
-    if (spouseId) {
-      // Check if the spouse is already married to someone else
-      const existingSpouse = await prisma.familyMember.findUnique({
-        where: { spouseId },
-      });
+    // Handle spouse relationship only if spouseId field is explicitly provided in the request
+    if (formData.has('spouseId')) {
+      const spouseId = formData.get('spouseId') as string | null;
+      if (spouseId) {
+        // Check if the spouse is already married to someone else
+        const existingSpouse = await prisma.familyMember.findUnique({
+          where: { spouseId },
+        });
 
-      if (existingSpouse && existingSpouse.id !== params.id) {
-        return new NextResponse(
-          'The selected spouse is already married to another family member',
-          { status: 400 }
-        );
-      }
+        if (existingSpouse && existingSpouse.id !== params.id) {
+          return new NextResponse(
+            'The selected spouse is already married to another family member',
+            { status: 400 }
+          );
+        }
 
-      // Update both members' spouse relationships
-      await prisma.$transaction([
-        // Update the current member's spouse
-        prisma.familyMember.update({
-          where: { id: params.id },
-          data: { spouseId },
-        }),
-        // Update the spouse's spouseId to point to the current member
-        prisma.familyMember.update({
-          where: { id: spouseId },
-          data: { spouseId: params.id },
-        }),
-      ]);
-    } else {
-      // If removing spouse relationship
-      const currentMember = await prisma.familyMember.findUnique({
-        where: { id: params.id },
-        select: { spouseId: true },
-      });
-
-      if (currentMember?.spouseId) {
+        // Update both members' spouse relationships
         await prisma.$transaction([
-          // Remove spouse from current member
+          // Update the current member's spouse
           prisma.familyMember.update({
             where: { id: params.id },
-            data: { spouseId: null },
+            data: { spouseId },
           }),
-          // Remove spouse from the other member
+          // Update the spouse's spouseId to point to the current member
           prisma.familyMember.update({
-            where: { id: currentMember.spouseId },
-            data: { spouseId: null },
+            where: { id: spouseId },
+            data: { spouseId: params.id },
           }),
         ]);
+      } else {
+        // If explicitly setting spouseId to null, remove spouse relationship
+        const currentMember = await prisma.familyMember.findUnique({
+          where: { id: params.id },
+          select: { spouseId: true },
+        });
+
+        if (currentMember?.spouseId) {
+          await prisma.$transaction([
+            // Remove spouse from current member
+            prisma.familyMember.update({
+              where: { id: params.id },
+              data: { spouseId: null },
+            }),
+            // Remove spouse from the other member
+            prisma.familyMember.update({
+              where: { id: currentMember.spouseId },
+              data: { spouseId: null },
+            }),
+          ]);
+        }
       }
     }
 

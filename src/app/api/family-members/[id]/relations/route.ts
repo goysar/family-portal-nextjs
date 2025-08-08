@@ -105,16 +105,24 @@ export async function PUT(
 
       // Update children relationships
       if (childrenIds?.length) {
-        await tx.familyMember.updateMany({
-          where: {
-            id: {
-              in: childrenIds
-            }
-          },
-          data: {
-            fatherId: params.id
-          }
-        });
+        const memberGender = (member as any).gender?.toLowerCase?.();
+        const parentData =
+          memberGender === 'male'
+            ? { fatherId: params.id }
+            : memberGender === 'female'
+            ? { motherId: params.id }
+            : null;
+
+        if (parentData) {
+          await tx.familyMember.updateMany({
+            where: {
+              id: {
+                in: childrenIds,
+              },
+            },
+            data: parentData,
+          });
+        }
       }
 
       // Update siblings by setting their parents
