@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 export default function AdminLayout({
@@ -11,6 +11,12 @@ export default function AdminLayout({
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const navLinkClass = (isActive: boolean) =>
+    isActive
+      ? 'border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium'
+      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium';
 
   if (status === 'loading') {
     return (
@@ -37,19 +43,19 @@ export default function AdminLayout({
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
                   href="/admin"
-                  className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={navLinkClass(pathname === '/admin')}
                 >
                   Overview
                 </Link>
                 <Link
                   href="/admin/members"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={navLinkClass(pathname.startsWith('/admin/members'))}
                 >
                   Family Members
                 </Link>
                 <Link
                   href="/admin/events"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={navLinkClass(pathname.startsWith('/admin/events'))}
                 >
                   Events
                 </Link>
