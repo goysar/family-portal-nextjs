@@ -1,0 +1,81 @@
+# Family Portal
+
+A comprehensive family management application built with Next.js, Prisma, and PostgreSQL.
+
+## Features
+
+- **Family Member Management**: Add, edit, and manage family members
+- **Family Tree Visualization**: Interactive family tree with relationships
+- **Event Management**: Create and manage family events
+- **Activity Tracking**: Track family member activities
+- **Admin Dashboard**: Administrative tools for managing the portal
+- **Authentication**: Secure login system
+
+## Tech Stack
+
+- **Frontend**: Next.js 14 with TypeScript
+- **Database**: PostgreSQL with Prisma ORM
+- **Styling**: Tailwind CSS
+- **UI Components**: Material-UI
+- **Authentication**: NextAuth.js
+
+## Getting Started
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Set up environment variables:**
+   Create a `.env.local` file with:
+   ```
+   DATABASE_URL="postgresql://username:password@localhost:5432/family_portal"
+   NEXTAUTH_SECRET="your-secret-key"
+   NEXTAUTH_URL="http://localhost:3000"
+   ```
+
+3. **Set up the database:**
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   npx prisma db seed
+   ```
+
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Access the application:**
+   Open [http://localhost:3000](http://localhost:3000)
+
+## Default Admin Account
+
+After running the seed script, you can login with:
+- **Email**: admin@family.com
+- **Password**: admin123
+
+## Project Structure
+family-portal/
+├── prisma/ # Database schema and migrations
+├── src/
+│ ├── app/ # Next.js app router pages
+│ ├── components/ # React components
+│ ├── lib/ # Utility functions and configurations
+│ ├── models/ # TypeScript type definitions
+│ └── types/ # Type definitions
+├── public/ # Static assets
+└── package.json # Dependencies and scripts
+
+
+## Database Schema
+
+- **FamilyMember**: Core family member data with relationships
+- **Event**: Family events and gatherings
+- **Activity**: Member activity tracking
+
+## Development
+
+- **Database migrations**: `npx prisma migrate dev`
+- **Seed database**: `npx prisma db seed`
+- **Generate Prisma client**: `npx prisma generate`

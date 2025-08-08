@@ -1,26 +1,103 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-end-rgb));
+}
+
+.react-flow__node {
+  width: auto;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  color: #1f2937;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+}
+
+.react-flow__node.selected {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.react-flow__edge {
+  z-index: 0;
+}
+
+.react-flow__edge-path {
+  stroke: #9ca3af;
+  stroke-width: 2;
+}
+
+.react-flow__edge.parent-child .react-flow__edge-path {
+  stroke: #3b82f6;
+}
+
+.react-flow__edge.spouse .react-flow__edge-path {
+  stroke: #10b981;
+}
+
+.react-flow__edge.sibling .react-flow__edge-path {
+  stroke: #f59e0b;
+}
+
+.react-flow__controls {
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.08);
+}
+
+.react-flow__controls-button {
+  border: none;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  box-sizing: content-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  user-select: none;
+  padding: 5px;
+}
+
+.react-flow__controls-button:hover {
+  background: #e5e7eb;
+}
+
+.react-flow__minimap {
+  background-color: #f3f4f6;
+}
+
+.react-flow__minimap-mask {
+  fill: #e5e7eb;
+}
+
+.react-flow__minimap-node {
+  fill: #9ca3af;
+  stroke: none;
+}
+
+.react-flow__attribution {
+  background: #f3f4f6;
+  padding: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.react-flow__attribution a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.react-flow__attribution a:hover {
+  text-decoration: underline;
 }
