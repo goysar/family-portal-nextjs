@@ -224,24 +224,33 @@ export default function EditMemberModal({ isOpen, onClose, onSuccess, member }: 
 
         <div className="bg-gray-50 p-4 rounded-lg">
           <h5 className="text-sm font-medium text-gray-700 mb-2">Children</h5>
-          {memberWithRelations?.children && memberWithRelations.children.length > 0 ? (
-            <div className="space-y-2">
-              {memberWithRelations.children.map((child: FamilyMember) => (
-                <div key={child.id} className="flex items-center space-x-2">
-                  <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                    <span className="text-xs font-medium text-green-600">
-                      {child.firstName[0]}{child.lastName[0]}
+          {(() => {
+            const childrenFromFather: FamilyMember[] = memberWithRelations?.children || [];
+            const childrenFromMother: FamilyMember[] = memberWithRelations?.childrenOfMother || [];
+            const dedupedById = new Map<string, FamilyMember>();
+            [...childrenFromFather, ...childrenFromMother].forEach((c) => {
+              if (!dedupedById.has(c.id)) dedupedById.set(c.id, c);
+            });
+            const allChildren = Array.from(dedupedById.values());
+            return allChildren.length > 0 ? (
+              <div className="space-y-2">
+                {allChildren.map((child: FamilyMember) => (
+                  <div key={child.id} className="flex items-center space-x-2">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                      <span className="text-xs font-medium text-green-600">
+                        {child.firstName[0]}{child.lastName[0]}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-900">
+                      {child.firstName} {child.lastName}
                     </span>
                   </div>
-                  <span className="text-sm text-gray-900">
-                    {child.firstName} {child.lastName}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No children added</p>
-          )}
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No children added</p>
+            );
+          })()}
         </div>
 
         <div className="bg-gray-50 p-4 rounded-lg">

@@ -119,7 +119,7 @@ export default function MembersPage() {
         <div className="relative rounded-md shadow-sm">
           <input
             type="text"
-            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-4 pr-12 sm:text-sm border-gray-300 rounded-md"
+            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-4 pr-12 sm:text-sm sm:leading-[2.6] border-gray-300 rounded-md"
             placeholder="Search members..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

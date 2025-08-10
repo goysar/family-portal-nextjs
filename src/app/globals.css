@@ -50,6 +50,10 @@ body {
   stroke: #f59e0b;
 }
 
+.react-flow__edge.in-law .react-flow__edge-path {
+  stroke: #8b5cf6;
+}
+
 .react-flow__controls {
   box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.08);
 }

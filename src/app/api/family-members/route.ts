@@ -25,38 +25,29 @@ type FamilyMemberResponse = {
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    
-    console.log('Session:', JSON.stringify(session, null, 2));
-    
     if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
-
     if (!session.user?.id) {
-      console.error('Session user ID is missing:', session);
       return new NextResponse('User ID not found in session', { status: 400 });
     }
 
-    console.log('Fetching user with ID:', session.user.id);
-
     // Get the current user
     const currentUser = await prisma.familyMember.findUnique({
-      where: { 
-        id: session.user.id 
-      },
+      where: { id: session.user.id },
     });
-
-    console.log('Current user found:', currentUser ? 'Yes' : 'No');
-
     if (!currentUser) {
       return new NextResponse('User not found', { status: 404 });
     }
 
     // Helper to avoid duplicates
     const memberMap = new Map<string, FamilyMemberResponse>();
-    
+    const visited = new Set<string>();
+    const queue: string[] = [];
+
     function addMember(member: any) {
-      if (member && !memberMap.has(member.id)) {
+      if (!member) return;
+      if (!memberMap.has(member.id)) {
         memberMap.set(member.id, {
           id: member.id,
           firstName: member.firstName,
@@ -72,79 +63,140 @@ export async function GET() {
           motherId: member.motherId,
         });
       }
+      if (!visited.has(member.id)) {
+        queue.push(member.id);
+      }
     }
 
-    try {
-      // Add current user
-      addMember(currentUser);
+    // Seed with current user
+    addMember(currentUser);
 
-      // Fetch and add spouse
-      if (currentUser.spouseId) {
-        const spouse = await prisma.familyMember.findUnique({
-          where: { id: currentUser.spouseId },
-        });
-        if (spouse) addMember(spouse);
+    while (queue.length > 0) {
+      const memberId = queue.shift() as string;
+      if (visited.has(memberId)) continue;
+      visited.add(memberId);
+
+      // Use data we already have when possible
+      const base = memberMap.get(memberId);
+      let fatherId: string | null | undefined = base?.fatherId;
+      let motherId: string | null | undefined = base?.motherId;
+      let spouseId: string | null | undefined = base?.spouseId;
+
+      // Ensure we have up-to-date relation IDs
+      if (fatherId === undefined || motherId === undefined || spouseId === undefined) {
+        const reloaded = await prisma.familyMember.findUnique({ where: { id: memberId } });
+        fatherId = fatherId ?? reloaded?.fatherId ?? null;
+        motherId = motherId ?? reloaded?.motherId ?? null;
+        spouseId = spouseId ?? reloaded?.spouseId ?? null;
       }
 
-      // Fetch and add father
-      if (currentUser.fatherId) {
-        const father = await prisma.familyMember.findUnique({
-          where: { id: currentUser.fatherId },
-        });
-        if (father) addMember(father);
+      // Parents
+      if (fatherId) {
+        const father = await prisma.familyMember.findUnique({ where: { id: fatherId } });
+        addMember(father);
+      }
+      if (motherId) {
+        const mother = await prisma.familyMember.findUnique({ where: { id: motherId } });
+        addMember(mother);
       }
 
-      // Fetch and add mother
-      if (currentUser.motherId) {
-        const mother = await prisma.familyMember.findUnique({
-          where: { id: currentUser.motherId },
-        });
-        if (mother) addMember(mother);
+      // Spouse
+      if (spouseId) {
+        const spouse = await prisma.familyMember.findUnique({ where: { id: spouseId } });
+        addMember(spouse);
       }
 
-      // Fetch and add children
+      // Children
       const children = await prisma.familyMember.findMany({
         where: {
           OR: [
-            { fatherId: currentUser.id },
-            { motherId: currentUser.id },
+            { fatherId: memberId },
+            { motherId: memberId },
           ],
         },
       });
       children.forEach(addMember);
 
-      // Fetch and add siblings
-      const siblings = await prisma.familyMember.findMany({
+      // Siblings (share at least one parent)
+      if (fatherId || motherId) {
+        const siblings = await prisma.familyMember.findMany({
+          where: {
+            AND: [
+              {
+                OR: [
+                  fatherId ? { fatherId } : undefined as any,
+                  motherId ? { motherId } : undefined as any,
+                ].filter(Boolean) as any,
+              },
+              { id: { not: memberId } },
+            ],
+          },
+        });
+        siblings.forEach(addMember);
+      }
+
+      // In-laws: Spouse's parents
+      if (spouseId) {
+        const spouse = await prisma.familyMember.findUnique({ where: { id: spouseId } });
+        if (spouse) {
+          // Spouse's father (father-in-law)
+          if (spouse.fatherId) {
+            const fatherInLaw = await prisma.familyMember.findUnique({ where: { id: spouse.fatherId } });
+            addMember(fatherInLaw);
+          }
+          // Spouse's mother (mother-in-law)
+          if (spouse.motherId) {
+            const motherInLaw = await prisma.familyMember.findUnique({ where: { id: spouse.motherId } });
+            addMember(motherInLaw);
+          }
+        }
+      }
+
+      // In-laws: Siblings' spouses
+      if (fatherId || motherId) {
+        const siblings = await prisma.familyMember.findMany({
+          where: {
+            AND: [
+              {
+                OR: [
+                  fatherId ? { fatherId } : undefined as any,
+                  motherId ? { motherId } : undefined as any,
+                ].filter(Boolean) as any,
+              },
+              { id: { not: memberId } },
+            ],
+          },
+        });
+        for (const sibling of siblings) {
+          if (sibling.spouseId) {
+            const siblingSpouse = await prisma.familyMember.findUnique({ where: { id: sibling.spouseId } });
+            addMember(siblingSpouse);
+          }
+        }
+      }
+
+      // In-laws: Children's spouses
+      const childrenForInLaws = await prisma.familyMember.findMany({
         where: {
-          AND: [
-            {
-              OR: [
-                { fatherId: currentUser.fatherId },
-                { motherId: currentUser.motherId },
-              ],
-            },
-            { id: { not: currentUser.id } },
+          OR: [
+            { fatherId: memberId },
+            { motherId: memberId },
           ],
         },
       });
-      siblings.forEach(addMember);
-
-      // Convert to array
-      const relatedMembers = Array.from(memberMap.values());
-      console.log('Number of related members found:', relatedMembers.length);
-
-      return NextResponse.json(relatedMembers);
-    } catch (error) {
-      console.error('Error processing relationships:', error);
-      throw error;
+      for (const child of childrenForInLaws) {
+        if (child.spouseId) {
+          const childSpouse = await prisma.familyMember.findUnique({ where: { id: child.spouseId } });
+          addMember(childSpouse);
+        }
+      }
     }
+
+    // Convert to array
+    const relatedMembers = Array.from(memberMap.values());
+    return NextResponse.json(relatedMembers);
   } catch (error) {
-    console.error('Detailed error in GET /api/family-members:', error);
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
+    console.error('Error in GET /api/family-members:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
@@ -159,7 +211,7 @@ export async function POST(request: Request) {
     }
 
     const formData = await request.formData();
-    
+
     // Extract all form fields
     const data = {
       firstName: formData.get('firstName') as string,

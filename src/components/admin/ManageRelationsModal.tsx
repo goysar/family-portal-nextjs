@@ -20,6 +20,7 @@ interface ManageRelationsModalProps {
     father?: FamilyMember | null;
     mother?: FamilyMember | null;
     children?: FamilyMember[];
+    childrenOfMother?: FamilyMember[];
     siblings?: FamilyMember[];
   };
   onSuccess?: () => void;
@@ -52,7 +53,14 @@ export default function ManageRelationsModal({
       setSelectedSpouse(member.spouse?.id || '');
       setSelectedFather(member.father?.id || '');
       setSelectedMother(member.mother?.id || '');
-      setSelectedChildren(member.children?.map(child => child.id) || []);
+      // Include children linked via father as well as via mother
+      const childrenFromFather = member.children?.map(child => child.id) || [];
+      const childrenFromMother = member.childrenOfMother?.map(child => child.id) || [];
+      const combinedChildren = Array.from(new Set([...
+        childrenFromFather,
+        ...childrenFromMother,
+      ]));
+      setSelectedChildren(combinedChildren);
       setSelectedSiblings(member.siblings?.map(sibling => sibling.id) || []);
     }
   }, [member]);

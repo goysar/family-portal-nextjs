@@ -42,12 +42,21 @@ export default function FamilyTree({ onNodeClick }: FamilyTreeProps) {
     // Organize members by levels
     const levels = new Map<number, any[]>();
     
-    // Level 0: Parents
+    // Level 0: Parents and Spouse's Parents (In-laws)
     const parents = [
       ...(currentUser.fatherId ? [members.find(m => m.id === currentUser.fatherId)] : []),
       ...(currentUser.motherId ? [members.find(m => m.id === currentUser.motherId)] : [])
     ].filter(Boolean);
-    levels.set(0, parents);
+    
+    // Add spouse's parents to the same level
+    const spouse = currentUser.spouseId ? members.find(m => m.id === currentUser.spouseId) : null;
+    const spouseParents = spouse ? [
+      ...(spouse.fatherId ? [members.find(m => m.id === spouse.fatherId)] : []),
+      ...(spouse.motherId ? [members.find(m => m.id === spouse.motherId)] : [])
+    ].filter(Boolean) : [];
+    
+    const level0Members = [...parents, ...spouseParents];
+    levels.set(0, level0Members);
 
     // Level 1: Current user, spouse, and siblings
     const siblings = members.filter(m => 
@@ -55,17 +64,27 @@ export default function FamilyTree({ onNodeClick }: FamilyTreeProps) {
       m.id !== currentUser.id
     );
     
-    // Add spouse to the same level if exists
-    const spouse = currentUser.spouseId ? members.find(m => m.id === currentUser.spouseId) : null;
     const level1Members = [currentUser, ...(spouse ? [spouse] : []), ...siblings];
     levels.set(1, level1Members);
 
-    // Level 2: Children
+    // Level 2: Children and their spouses
     const children = members.filter(m => 
       m.fatherId === currentUser.id || m.motherId === currentUser.id
     );
-    if (children.length > 0) {
-      levels.set(2, children);
+    const childrenSpouses = children
+      .map(child => child.spouseId ? members.find(m => m.id === child.spouseId) : null)
+      .filter(Boolean);
+    const level2Members = [...children, ...childrenSpouses];
+    if (level2Members.length > 0) {
+      levels.set(2, level2Members);
+    }
+
+    // Level 0.5: Siblings' spouses (positioned between parents and current user)
+    const siblingsSpouses = siblings
+      .map(sibling => sibling.spouseId ? members.find(m => m.id === sibling.spouseId) : null)
+      .filter(Boolean);
+    if (siblingsSpouses.length > 0) {
+      levels.set(0.5, siblingsSpouses);
     }
 
     // Position nodes by level
@@ -163,6 +182,69 @@ export default function FamilyTree({ onNodeClick }: FamilyTreeProps) {
             type: 'smoothstep',
             label: 'Sibling',
             className: 'sibling',
+          });
+        }
+      });
+
+      // In-law relationships (purple)
+      // Spouse's parents
+      if (member.spouseId) {
+        const spouse = members.find(m => m.id === member.spouseId);
+        if (spouse) {
+          if (spouse.fatherId && member.id < spouse.fatherId) {
+            edges.push({
+              id: `${member.id}-${spouse.fatherId}`,
+              source: member.id,
+              target: spouse.fatherId,
+              type: 'smoothstep',
+              label: 'Father-in-law',
+              className: 'in-law',
+            });
+          }
+          if (spouse.motherId && member.id < spouse.motherId) {
+            edges.push({
+              id: `${member.id}-${spouse.motherId}`,
+              source: member.id,
+              target: spouse.motherId,
+              type: 'smoothstep',
+              label: 'Mother-in-law',
+              className: 'in-law',
+            });
+          }
+        }
+      }
+
+      // Siblings' spouses
+      const siblingsForInLaws = members.filter(m => 
+        (m.fatherId === member.fatherId || m.motherId === member.motherId) && 
+        m.id !== member.id
+      );
+      siblingsForInLaws.forEach(sibling => {
+        if (sibling.spouseId && member.id < sibling.spouseId) {
+          edges.push({
+            id: `${member.id}-${sibling.spouseId}`,
+            source: member.id,
+            target: sibling.spouseId,
+            type: 'smoothstep',
+            label: 'In-law',
+            className: 'in-law',
+          });
+        }
+      });
+
+      // Children's spouses
+      const children = members.filter(m => 
+        m.fatherId === member.id || m.motherId === member.id
+      );
+      children.forEach(child => {
+        if (child.spouseId && member.id < child.spouseId) {
+          edges.push({
+            id: `${member.id}-${child.spouseId}`,
+            source: member.id,
+            target: child.spouseId,
+            type: 'smoothstep',
+            label: 'In-law',
+            className: 'in-law',
           });
         }
       });
