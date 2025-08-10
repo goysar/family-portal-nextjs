@@ -67,7 +67,7 @@ export default function ManageRelationsModal({
 
   const fetchAvailableMembers = async () => {
     try {
-      const response = await fetch('/api/family-members');
+      const response = await fetch('/api/admin/members');
       if (!response.ok) throw new Error('Failed to fetch members');
       const data = await response.json();
       // Filter out the current member

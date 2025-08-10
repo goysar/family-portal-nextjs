@@ -58,33 +58,39 @@ export default function FamilyTree({ onNodeClick }: FamilyTreeProps) {
     const level0Members = [...parents, ...spouseParents];
     levels.set(0, level0Members);
 
-    // Level 1: Current user, spouse, and siblings
+    // Level 1: Current user, spouse, siblings, and siblings' spouses
     const siblings = members.filter(m => 
       (m.fatherId === currentUser.fatherId || m.motherId === currentUser.motherId) && 
       m.id !== currentUser.id
     );
     
-    const level1Members = [currentUser, ...(spouse ? [spouse] : []), ...siblings];
+    // Get siblings' spouses
+    const siblingsSpouses = siblings
+      .map(sibling => sibling.spouseId ? members.find(m => m.id === sibling.spouseId) : null)
+      .filter(Boolean);
+    
+    const level1Members = [currentUser, ...(spouse ? [spouse] : []), ...siblings, ...siblingsSpouses];
     levels.set(1, level1Members);
 
-    // Level 2: Children and their spouses
+    // Level 2: Children, children's spouses, siblings' children, and siblings' children's spouses
     const children = members.filter(m => 
       m.fatherId === currentUser.id || m.motherId === currentUser.id
     );
     const childrenSpouses = children
       .map(child => child.spouseId ? members.find(m => m.id === child.spouseId) : null)
       .filter(Boolean);
-    const level2Members = [...children, ...childrenSpouses];
+    
+    // Get siblings' children
+    const siblingsChildren = siblings.flatMap(sibling => 
+      members.filter(m => m.fatherId === sibling.id || m.motherId === sibling.id)
+    );
+    const siblingsChildrenSpouses = siblingsChildren
+      .map(child => child.spouseId ? members.find(m => m.id === child.spouseId) : null)
+      .filter(Boolean);
+    
+    const level2Members = [...children, ...childrenSpouses, ...siblingsChildren, ...siblingsChildrenSpouses];
     if (level2Members.length > 0) {
       levels.set(2, level2Members);
-    }
-
-    // Level 0.5: Siblings' spouses (positioned between parents and current user)
-    const siblingsSpouses = siblings
-      .map(sibling => sibling.spouseId ? members.find(m => m.id === sibling.spouseId) : null)
-      .filter(Boolean);
-    if (siblingsSpouses.length > 0) {
-      levels.set(0.5, siblingsSpouses);
     }
 
     // Position nodes by level
